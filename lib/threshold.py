@@ -52,27 +52,26 @@ def dir_thresh(image, sobel_kernel=3, thresh=(0, np.pi/2)):
     
     return dir_binary
 
-def combined_thresh(image):
-    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-
-    # Get saturation and red channel images
-    s_channel = hls[:,:,2]
-    red_channel = image[:,:,0]
-
-    sxbinary = abs_sobel_thresh(red_channel, thresh=(20, 100))
-
+def combined_thresh(image, combine=False):
     # Threshold color channel
     s_thresh_min = 170
-    s_thresh_max = 255
+    s_thresh_max = 235
+
+    # Get saturation channel image
+    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+    s_channel = hls[:,:,2]
+    # blurred_sat = cv2.GaussianBlur(s_channel, (5, 5), 0)
+
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
 
-    # Stack each channel to view their individual contributions in green and blue respectively
-    # This returns a stack of the two binary images, whose components you can see as different colors
-    color_binary = np.dstack((np.zeros_like(sxbinary), sxbinary, s_binary)) * 255
+    # Get red channel image
+    red_channel = image[:,:,0]
+    blurred_red = cv2.GaussianBlur(red_channel, (5, 5), 0)
+    combined = abs_sobel_thresh(blurred_red, thresh=(30, 100))
 
     # Combine the two binary thresholds
-    combined_binary = np.zeros_like(sxbinary)
-    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    combined_binary = np.zeros_like(combined)
+    combined_binary[(s_binary == 1) | (combined == 1)] = 1
 
     return combined_binary

@@ -15,8 +15,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from lib.calibrate import Calibrate
-from lib.threshold import abs_sobel_thresh, abs_sobel_thresh, mag_thresh, dir_thresh, combined_thresh
-from lib.helper import plot_side_by_side
+from lib.threshold import combined_thresh
+from lib.helper import plot_side_by_side, region_of_interest, hough_lines
+from lib.transform import corners_unwarp, fit_polynomial
 
 TEST_SRC = f'{os.getcwd()}/test_images'
 
@@ -24,27 +25,32 @@ cal = Calibrate()
 MTX, DIST = cal.get_values()
 
 def process_image(image):
-    undistorted = cv2.undistort(img, MTX, DIST, None, MTX)
+    undistorted = cv2.undistort(image, MTX, DIST, None, MTX)
 
-    gaussian_k = 5
-    gray = cv2.cvtColor(undistorted, cv2.COLOR_RGB2GRAY)
-    blur_gray = cv2.GaussianBlur(gray, (gaussian_k, gaussian_k), 0)
+    binary = combined_thresh(undistorted)
+    height = binary.shape[0]
+    width = binary.shape[1]
 
-    ksize = 15
-    gradx = abs_sobel_thresh(blur_gray, orient='x', sobel_kernel=ksize, thresh=(20, 100))
-    grady = abs_sobel_thresh(blur_gray, orient='y', sobel_kernel=ksize, thresh=(20, 100))
-    mag_binary = mag_thresh(blur_gray, sobel_kernel=ksize, mag_thresh=(30, 100))
-    dir_binary = dir_thresh(blur_gray, sobel_kernel=ksize, thresh=(0.7, 1.3))
+    masking_region = np.array([[
+        [0,height],
+        [width/2.1,height/1.68],
+        [width/1.9,height/1.68],
+        [width,height]
+    ]], dtype=np.int32)
+    masked_image = region_of_interest(binary, masking_region)
+    src_points = hough_lines(masked_image, 2, np.pi/180, 50, 30, 10)
 
-    combined = np.zeros_like(dir_binary)
-    combined[((gradx == 1) & (grady == 1) | (mag_binary == 1) & (dir_binary == 1))] = 1
+    warped, M = corners_unwarp(undistorted, binary, src_points)
 
-    combined2 = combined_thresh(img)
+    # out_img = fit_polynomial(warped)
 
-    return combined, combined2
+    plot_side_by_side(warped, binary, l_desc='first', r_desc='second',r_cmap='gray')
+
+    return binary
 
 
 for image in os.listdir(TEST_SRC):
     img = mpimg.imread(os.path.join(TEST_SRC, image))
-    combined, combined2 = process_image(img)
-    plot_side_by_side(combined, combined2, l_desc='first', r_desc='second', l_cmap='gray', r_cmap='gray')
+    binary = process_image(img)
+    # plot_side_by_side(img, binary, l_desc='first', r_desc='second', l_cmap='gray', r_cmap='gray')
+    # print(binary)

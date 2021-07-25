@@ -10,14 +10,14 @@ from .helper import plot_side_by_side
 CWD = os.getcwd()
 
 class Calibrate:
-    def __init__(self, verbose=False):
+    def __init__(self, board_corners=(9,6), src_dir='camera_cal', verbose=False):
         self.verbose = verbose
 
-        self.nx = 9
-        self.ny = 6
+        self.nx = board_corners[0]
+        self.ny = board_corners[1]
 
-        self.src_dir = f'{CWD}/camera_cal'
-        self.dump_path = f'{CWD}/lib/cal.dat'
+        self.src_dir = os.path.join(CWD, src_dir)
+        self.dump_path =os.path.join(CWD, '/lib/cal.dat')
 
         if os.path.exists(self.dump_path):
             with open(self.dump_path, "rb") as data:
@@ -62,13 +62,13 @@ class Calibrate:
             image = mpimg.imread(path)
             gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
-            ret, corners = cv2.findChessboardCorners(gray, (nX_CORNERS,nY_CORNERS), None)
+            ret, corners = cv2.findChessboardCorners(gray, (self.nx,self.ny), None)
             if ret:
                 obj_points.append(init_points)
                 img_points.append(corners)
 
             if self.verbose:
-                img = cv2.drawChessboardCorners(image, (nX_CORNERS,nY_CORNERS), corners, ret)
+                img = cv2.drawChessboardCorners(image, (self.nx,self.ny), corners, ret)
                 cv2.imshow('img',img)
                 cv2.waitKey(500)
 
