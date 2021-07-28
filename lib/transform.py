@@ -10,9 +10,8 @@ XM_PER_PIX = 3.7/700 # meters per pixel in x dimension
 LEFT_FIT = None
 RIGHT_FIT = None
 
-qdef fit_polynomial(warped):
+def fit_polynomial(warped):
     # Find our lane pixels first
-    # if RESET_LANE_SEARCH:
     global LEFT_FIT
     global RIGHT_FIT
     if LEFT_FIT is not None and RIGHT_FIT is not None:
@@ -171,19 +170,17 @@ def _fit_poly(img_shape, leftx, lefty, rightx, righty):
     return ploty, left_fitx, right_fitx, left_fit, right_fit, curv_left_fit, curv_right_fit
 
 def measure_curvature(ploty, curv_left_fit, curv_right_fit):
-
     y_eval = np.max(ploty)
 
     # Calculation of R_curve (radius of curvature)
     left_curverad = (( 1 + ( 2 * curv_left_fit[0] * y_eval * YM_PER_PIX + curv_left_fit[1] ) ** 2 ) ** 1.5 ) / np.absolute(2 * curv_left_fit[0])
     right_curverad = (( 1 + ( 2 * curv_right_fit[0] * y_eval * YM_PER_PIX + curv_right_fit[1] ) ** 2) ** 1.5) / np.absolute(2 * curv_right_fit[0])
-    avg_curverad = np.around((left_curverad + right_curverad) / 2., decimals=2)
 
-    return avg_curverad, left_curverad, right_curverad
+    return left_curverad, right_curverad
 
-def lane_overlay(undist, inverse_M, ploty, left_fitx, right_fitx, avg_curverad):
+def lane_overlay(undistorted, inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad):
     # Create an image to draw the lines on
-    color_warp = np.zeros_like(undist).astype(np.uint8)
+    color_warp = np.zeros_like(undistorted).astype(np.uint8)
 
     # Recast the x and y points into usable format
     pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
@@ -194,13 +191,12 @@ def lane_overlay(undist, inverse_M, ploty, left_fitx, right_fitx, avg_curverad):
     cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
 
     # Warp the blank back to original image space using inverse perspective matrix (inverse_M)
-    newwarp = cv2.warpPerspective(color_warp, inverse_M, (undist.shape[1], undist.shape[0]))
+    newwarp = cv2.warpPerspective(color_warp, inverse_M, (undistorted.shape[1], undistorted.shape[0]))
 
     # Combine the result with the original image
-    result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+    result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
 
-    stat_cur = 'Radius of Curvature = ' + format(avg_curverad, '.2f') + 'm'
-    # stat_dep = 'Vehicle is ' + format(depart, '.2f') + l_r + 'of centre'
-    cv2.putText(result, stat_cur, (50, 60), cv2.FONT_HERSHEY_TRIPLEX, 1.5, (255, 255, 255), lineType=1000)
+    avg_curverad = np.around((left_curverad + right_curverad) / 2., decimals=2)
+    cv2.putText(result, f'Radius of Curvature = {avg_curverad:.2f}m', (50, 50), cv2.FONT_HERSHEY_TRIPLEX, 1.5, (255, 255, 255), lineType=1000)
 
     return result

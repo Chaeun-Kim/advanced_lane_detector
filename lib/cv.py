@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from .calibrate import Calibrate
-from .helper import get_points_on_lines
+from .helper import get_points_on_lines, save_img
 
 class CV:
     def __init__(self, image, calibrator=None, use_undistored=False):
@@ -60,11 +60,11 @@ class CV:
         return grad_binary
 
     def warp_image(self, binary):
-        lines = self._get_hough_lines(binary, rho=2, theta=np.pi/180, threshold=50, min_line_len=30, max_line_gap=10)
+        # lines = self._get_hough_lines(binary, rho=2, theta=np.pi/180, threshold=50, min_line_len=30, max_line_gap=10)
 
         # left_lane_points, right_lane_points = get_points_on_lines(lines, self.shape)
-        # src_points = get_points_on_lines(lines, self.shape)
-        src_points = np.float32([[210, 720], [568, 470], [718, 470], [1110, 720]])
+        # src_points = np.float32([*left_lane_points, *right_lane_points])
+        src_points = np.float32([[210, 700], [560, 470], [720, 470], [1050, 700]])
         dest_points = np.float32([[200, 720], [200, 0], [980, 0], [980, 720]])
 
         # plt.imshow(self.original_image)
@@ -74,11 +74,11 @@ class CV:
         # plt.show()
 
         M = cv2.getPerspectiveTransform(src_points, dest_points)
+        # get inverse so that we can unwarp later
         inverse_M = cv2.getPerspectiveTransform(dest_points, src_points)
-        # Warp the image using OpenCV warpPerspective()
+
         warped = cv2.warpPerspective(binary, M, binary.shape[::-1], flags=cv2.INTER_LINEAR)
 
-        # Return the resulting image and matrix
         return warped, M, inverse_M
 
     def _get_hough_lines(self, binary, rho, theta, threshold, min_line_len, max_line_gap):

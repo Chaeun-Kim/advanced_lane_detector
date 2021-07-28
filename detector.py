@@ -38,9 +38,9 @@ def process_image(image):
     norm_warped = warped / 255
 
     ploty, left_fitx, right_fitx, curv_left_fit, curv_right_fit, out_img = fit_polynomial(norm_warped)
-    avg_curverad, left_curverad, right_curverad = measure_curvature(ploty, curv_left_fit, curv_right_fit)
+    left_curverad, right_curverad = measure_curvature(ploty, curv_left_fit, curv_right_fit)
 
-    result = lane_overlay(cv.get_image(), inverse_M, ploty, left_fitx, right_fitx, avg_curverad)
+    result = lane_overlay(cv.get_image(), inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad)
 
     return result
 
@@ -60,8 +60,8 @@ def find_lanes_on_videos():
     trace the lanes in each video and save off the output
     """
     for video in os.listdir(VIDEO_DIR):
-        if video == 'challenge_video.mp4':
-            clip = VideoFileClip(f'{VIDEO_DIR}/{video}').subclip(0,4)
+        if video == 'project_video.mp4':
+            clip = VideoFileClip(f'{VIDEO_DIR}/{video}')
             processed_clip = clip.fl_image(process_image)
             save_video(processed_clip, OUT_VIDEO_DIR, video)
 
