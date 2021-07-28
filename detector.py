@@ -18,15 +18,15 @@ from moviepy.editor import VideoFileClip
 
 from lib.cv import CV
 from lib.calibrate import Calibrate
-from lib.helper import plot_side_by_side, save_video, save_img
-from lib.transform import fit_polynomial, measure_curvature, lane_overlay
+from lib.helper import plot_side_by_side, save_video, save_img, draw_lane
+from lib.fit_lane_lines import fit_polynomial, measure_curvature
 
 CWD = os.getcwd()
 TEST_SRC = f'{CWD}/test_images'
 VIDEO_DIR = f'{CWD}/test_videos'
 OUT_VIDEO_DIR = f'{CWD}/out_videos'
 
-cal = Calibrate(verbose=True)
+cal = Calibrate()
 MTX, DIST = cal.get_values()
 
 def process_image(image):
@@ -40,7 +40,7 @@ def process_image(image):
     ploty, left_fitx, right_fitx, curv_left_fit, curv_right_fit, out_img = fit_polynomial(norm_warped)
     left_curverad, right_curverad = measure_curvature(ploty, curv_left_fit, curv_right_fit)
 
-    result = lane_overlay(cv.get_image(), inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad)
+    result = draw_lane(cv.get_image(), inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad)
 
     return result
 

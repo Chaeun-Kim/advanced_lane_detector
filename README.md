@@ -28,6 +28,8 @@ The goals / steps of this project are the following:
 [combined]: ./output_images/combined.jpg "Combined Threshold"
 [warped]: ./output_images/warped.jpg "Warped Combined Binary"
 [warped_n]: ./output_images/warped_n.jpg "Warped Original"
+[fit]: ./output_images/fit.jpg "Fitted Lane Lines"
+[result]: ./output_images/processed_straight_lines1.jpg "Result"
 
 ---
 
@@ -87,6 +89,31 @@ Combined                   |  Warped combined binary   | Warped undistorted imag
 
 ### Lane detection on Transformed image
 
+*the code for this step is contained in `lib/fit_lane_lines.py`*
+
+With the warped binary image, we plot out the histogram and look for 2 peaks where the most edges are found. The pipeline will assume those peak points on the histogram as starting points of left and right lane lines.
+
+From those starting points, we implement sliding window algorithm to find lane lines on the warped image. Starting from the bottom of the image, we set a window, centered around the starrting point, to look for parts of the lane line. If we find a good amount of white pixels, then we re-adjust the x-position of the window(sliding window), if not enough white pixels were found then we move onto next window without re-adjusting. We do this search until the window fills up the image from bottom to top.
+
+The result looks like this:
+
+![alt text][fit]
+
+Now that's a lot of searching on sliding windows, which would be inefficient to do on every single frame of vidoes. So the pipeline will utilize the information from the last search and skip the sliding window search if possible. This part of the pipeline is not very sophisticated, so it is only working on a limited set of test cases.
+
+### Lane Curvature
+
+*the code for this step is contained in `lib/fit_lane_lines.py` (line 172-179)*
+
+With fitted left and right lines, we can calculate the curvasture of those lines. The calculated value gets put on the frame that was processed.
+
+### Result
+
+Now the detected lane lines and curvature are projected back to the original image.
+
+![alt text][result]
+
+You can find a result video, `project_video.mp4`, under `output_videos` folder.
 
 
 

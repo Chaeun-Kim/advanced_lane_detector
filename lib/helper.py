@@ -13,7 +13,7 @@ def save_img(img, path, filename):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    return cv2.imwrite(f'{path}/{filename}', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    return cv2.imwrite(f'{path}/{filename}', img)# cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
 def plot_side_by_side(l_img, r_img, l_desc='Original Image', r_desc='New Image', l_cmap=None, r_cmap=None):
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
@@ -25,10 +25,25 @@ def plot_side_by_side(l_img, r_img, l_desc='Original Image', r_desc='New Image',
     plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
     plt.show()
 
-def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+def draw_lane(undistorted, inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad):
+    # Create a blank image to draw the lines on
+    blank_undistored = np.zeros_like(undistorted).astype(np.uint8)
+
+    # draw lane on the blank image
+    left_points = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    right_points = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    points = np.hstack((left_points, right_points))
+    cv2.fillPoly(blank_undistored, np.int_([points]), (0, 255, 0))
+
+    newwarp = cv2.warpPerspective(blank_undistored, inverse_M, (undistorted.shape[1], undistorted.shape[0]))
+
+    # Combine the result with the original image
+    result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
+
+    avg_curverad = np.around((left_curverad + right_curverad) / 2., decimals=2)
+    cv2.putText(result, f'Radius of Curvature = {avg_curverad:.2f}m', (50, 50), cv2.FONT_HERSHEY_TRIPLEX, 1.5, (255, 255, 255), lineType=1000)
+
+    return result
 
 def get_points_on_lines(lines, shape):
     """

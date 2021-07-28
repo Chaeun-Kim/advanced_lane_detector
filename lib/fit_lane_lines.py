@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from lib.helper import plot_side_by_side
+from lib.helper import plot_side_by_side, save_img
 
 YM_PER_PIX = 30/720 # meters per pixel in y dimension
 XM_PER_PIX = 3.7/700 # meters per pixel in x dimension
@@ -25,6 +25,16 @@ def fit_polynomial(warped):
 
     LEFT_FIT = left_fit
     RIGHT_FIT = right_fit
+    ## Visualization ##
+    # Colors in the left and right lane regions
+    # out_img[lefty, leftx] = [255, 0, 0]
+    # out_img[righty, rightx] = [0, 0, 255]
+
+    # Plots the left and right polynomials on the lane lines
+    # plt.plot(left_fitx, ploty, color='yellow')
+    # plt.plot(right_fitx, ploty, color='yellow')
+    # plt.imshow(out_img)
+    # plt.savefig('output_images/fit.jpg')
 
     return ploty, left_fitx, right_fitx, curv_left_fit, curv_right_fit, out_img
 
@@ -177,26 +187,3 @@ def measure_curvature(ploty, curv_left_fit, curv_right_fit):
     right_curverad = (( 1 + ( 2 * curv_right_fit[0] * y_eval * YM_PER_PIX + curv_right_fit[1] ) ** 2) ** 1.5) / np.absolute(2 * curv_right_fit[0])
 
     return left_curverad, right_curverad
-
-def lane_overlay(undistorted, inverse_M, ploty, left_fitx, right_fitx, left_curverad, right_curverad):
-    # Create an image to draw the lines on
-    color_warp = np.zeros_like(undistorted).astype(np.uint8)
-
-    # Recast the x and y points into usable format
-    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
-    pts = np.hstack((pts_left, pts_right))
-
-    # Draw the lane onto the warped blank image
-    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
-
-    # Warp the blank back to original image space using inverse perspective matrix (inverse_M)
-    newwarp = cv2.warpPerspective(color_warp, inverse_M, (undistorted.shape[1], undistorted.shape[0]))
-
-    # Combine the result with the original image
-    result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
-
-    avg_curverad = np.around((left_curverad + right_curverad) / 2., decimals=2)
-    cv2.putText(result, f'Radius of Curvature = {avg_curverad:.2f}m', (50, 50), cv2.FONT_HERSHEY_TRIPLEX, 1.5, (255, 255, 255), lineType=1000)
-
-    return result
