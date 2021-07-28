@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from .helper import plot_side_by_side
+from .helper import plot_side_by_side, save_img
 
 CWD = os.getcwd()
 
@@ -17,7 +17,7 @@ class Calibrate:
         self.ny = board_corners[1]
 
         self.src_dir = os.path.join(CWD, src_dir)
-        self.dump_path =os.path.join(CWD, '/lib/cal.dat')
+        self.dump_path = os.path.join(CWD, 'lib', 'cal.dat')
 
         if os.path.exists(self.dump_path):
             with open(self.dump_path, "rb") as data:
@@ -32,15 +32,16 @@ class Calibrate:
 
     def _calibrate(self):
         # Arrays to store object points and image points from all the images.
-        obj_points, img_points, gray = self._get_image_points()
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, gray.shape[::-1], None, None)
+        obj_points, img_points, shape = self._get_image_points()
+        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, shape, None, None)
 
         if self.verbose:
-            for file in os.listdir(SRC_DIR)[:2]:
-                img = mpimg.imread(os.path.join(SRC_DIR, file))
-                undistorted = cv2.undistort(img, mtx, dist)
+            for file in os.listdir(self.src_dir):
+                if file == 'calibration1.jpg':
+                    img = mpimg.imread(os.path.join(self.src_dir, file))
+                    undistorted = cv2.undistort(img, mtx, dist)
 
-                plot_side_by_side(img, undistorted)
+                    save_img(undistorted, 'output_images', f'undistorted_{file}')
 
         with open(self.dump_path, 'wb') as data:
             pickle.dump({'mtx': mtx, 'dist': dist}, data)
@@ -67,9 +68,4 @@ class Calibrate:
                 obj_points.append(init_points)
                 img_points.append(corners)
 
-            if self.verbose:
-                img = cv2.drawChessboardCorners(image, (self.nx,self.ny), corners, ret)
-                cv2.imshow('img',img)
-                cv2.waitKey(500)
-
-        return obj_points, img_points, gray
+        return obj_points, img_points, gray.shape[::-1]

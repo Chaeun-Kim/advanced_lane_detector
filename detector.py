@@ -14,43 +14,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from moviepy.editor import VideoFileClip
+
+from lib.cv import CV
 from lib.calibrate import Calibrate
-from lib.threshold import combined_thresh
-from lib.helper import plot_side_by_side, region_of_interest, hough_lines
-from lib.transform import corners_unwarp, fit_polynomial
+from lib.helper import plot_side_by_side, save_video, save_img
+from lib.transform import fit_polynomial, measure_curvature, lane_overlay
 
-TEST_SRC = f'{os.getcwd()}/test_images'
+CWD = os.getcwd()
+TEST_SRC = f'{CWD}/test_images'
+VIDEO_DIR = f'{CWD}/test_videos'
+OUT_VIDEO_DIR = f'{CWD}/out_videos'
 
-cal = Calibrate()
+cal = Calibrate(verbose=True)
 MTX, DIST = cal.get_values()
 
 def process_image(image):
-    undistorted = cv2.undistort(image, MTX, DIST, None, MTX)
+    # cal = Calibrate()
+    cv = CV(image, cal, use_undistored=True)
 
-    binary = combined_thresh(undistorted)
-    height = binary.shape[0]
-    width = binary.shape[1]
+    binary = cv.get_image_binary()
+    warped, M, inverse_M = cv.warp_image(binary)
+    norm_warped = warped / 255
 
-    masking_region = np.array([[
-        [0,height],
-        [width/2.1,height/1.68],
-        [width/1.9,height/1.68],
-        [width,height]
-    ]], dtype=np.int32)
-    masked_image = region_of_interest(binary, masking_region)
-    src_points = hough_lines(masked_image, 2, np.pi/180, 50, 30, 10)
+    ploty, left_fitx, right_fitx, curv_left_fit, curv_right_fit, out_img = fit_polynomial(norm_warped)
+    avg_curverad, left_curverad, right_curverad = measure_curvature(ploty, curv_left_fit, curv_right_fit)
 
-    warped, M = corners_unwarp(undistorted, binary, src_points)
+    result = lane_overlay(cv.get_image(), inverse_M, ploty, left_fitx, right_fitx, avg_curverad)
 
-    # out_img = fit_polynomial(warped)
+    return result
 
-    plot_side_by_side(warped, binary, l_desc='first', r_desc='second',r_cmap='gray')
+def find_lanes_on_images():
+    """
+    Go through images in the /data/images/ directory and
+    find the lanes in each image and save off the output
+    """
+    for image in os.listdir(TEST_SRC):
+        img = mpimg.imread(os.path.join(TEST_SRC, image))
+        result = process_image(img)
+        save_img(result, 'output_images', f'processed_{image}')
 
-    return binary
+def find_lanes_on_videos():
+    """
+    Go through videos in the /data/videos/ directory and
+    trace the lanes in each video and save off the output
+    """
+    for video in os.listdir(VIDEO_DIR):
+        if video == 'challenge_video.mp4':
+            clip = VideoFileClip(f'{VIDEO_DIR}/{video}').subclip(0,4)
+            processed_clip = clip.fl_image(process_image)
+            save_video(processed_clip, OUT_VIDEO_DIR, video)
 
-
-for image in os.listdir(TEST_SRC):
-    img = mpimg.imread(os.path.join(TEST_SRC, image))
-    binary = process_image(img)
-    # plot_side_by_side(img, binary, l_desc='first', r_desc='second', l_cmap='gray', r_cmap='gray')
-    # print(binary)
+# First part of Project 2 - lanes on images
+find_lanes_on_images()
+# Second part of Project 2 - lanes on a videos
+find_lanes_on_videos()
