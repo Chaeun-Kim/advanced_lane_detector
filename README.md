@@ -116,5 +116,10 @@ Now the detected lane lines and curvature are projected back to the original ima
 You can find a result video, `project_video.mp4`, under `output_videos` folder.
 
 
+### Discussion
 
+The limitation of this image processing pipeline is pretty obvious. It is not sophiscated enough to decide whether the current lane searching method is "good enough", and dynamically search for lanes. I have not put in enough thoughts onto that part unfortunately.
 
+The lane detection is also not robust enough. The pipeline still detects lanes wrongly on irreculary colored road pavements, or on very curvy lanes.
+
+I also need a better error handling, again a smarter lane detector, so when lanes aren't detected for some reason the detector shouldn't crash. It should be able to use the information that's been collected so far. Right now it breaks if it cannot find left/right lanes. I need a better overall pipeline design. I also should defintely explore more color spaces and fine tune parameters to better detect lane lines.
