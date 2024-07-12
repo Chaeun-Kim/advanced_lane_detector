@@ -1,6 +1,6 @@
 # Advanced lane detector
 
-Self-Driving Car Engineer Nanodegree Project 2
+Lane Detector for Self-Driving Car
 
 ---
 
